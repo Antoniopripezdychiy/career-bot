@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Карьерный навигатор МТС</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800&family=Onest:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --red: #E30611;
+    --red-dark: #b80008;
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --text: #f0f0f0;
+    --text-muted: #888;
+    --accent: #ff3a3a;
+    --green: #00c853;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: 'Onest', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* SCREENS */
+  .screen { display: none; min-height: 100vh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ===== WELCOME ===== */
+  #screen-welcome {
+    position: relative;
+    overflow: hidden;
+    justify-content: space-between;
+    padding: 48px 24px 40px;
+  }
+
+  .bg-grid {
+    position: absolute; inset: 0;
+    background-image: 
+      linear-gradient(rgba(227,6,17,0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(227,6,17,0.06) 1px, transparent 1px);
+    background-size: 40px 40px;
+    animation: gridMove 20s linear infinite;
+  }
+  @keyframes gridMove { to { background-position: 40px 40px; } }
+
+  .bg-glow {
+    position: absolute;
+    width: 400px; height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(227,6,17,0.15) 0%, transparent 70%);
+    top: -100px; right: -100px;
+    animation: pulse 4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:0.6} 50%{transform:scale(1.2);opacity:1} }
+
+  .welcome-top { position: relative; z-index: 1; }
+
+  .logo-wrap {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--red);
+    padding: 8px 16px 8px 10px;
+    border-radius: 12px;
+    margin-bottom: 40px;
+  }
+  .logo-mts {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 18px; font-weight: 800;
+    color: white; letter-spacing: -0.5px;
+  }
+  .logo-dot { width: 6px; height: 6px; background: white; border-radius: 50%; opacity: 0.6; }
+
+  .welcome-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 32px; font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 16px;
+  }
+  .welcome-title span { color: var(--red); }
+
+  .welcome-sub {
+    font-size: 15px; color: var(--text-muted);
+    line-height: 1.6; max-width: 300px;
+  }
+
+  .welcome-mid { position: relative; z-index: 1; }
+
+  .stats-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px; margin: 32px 0;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px 12px;
+    text-align: center;
+    position: relative; overflow: hidden;
+  }
+  .stat-card::before {
+    content: ''; position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: var(--red);
+  }
+  .stat-num {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 22px; font-weight: 800;
+    color: var(--red);
+  }
+  .stat-label { font-size: 10px; color: var(--text-muted); margin-top: 4px; line-height: 1.3; }
+
+  .features-list { display: flex; flex-direction: column; gap: 10px; }
+  .feature-item {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 13px; color: var(--text-muted);
+  }
+  .feature-icon {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(227,6,17,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+
+  .welcome-bottom { position: relative; z-index: 1; }
+
+  /* ===== SURVEY ===== */
+  #screen-survey { padding: 0; }
+
+  .survey-header {
+    padding: 20px 24px 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .progress-bar-wrap {
+    height: 3px; background: var(--border);
+    border-radius: 2px; margin-bottom: 16px;
+  }
+  .progress-bar-fill {
+    height: 100%; background: var(--red);
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .step-label {
+    font-size: 11px; color: var(--text-muted);
+    font-weight: 500; letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .step-question {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 18px; font-weight: 600;
+    line-height: 1.3; padding-bottom: 20px;
+  }
+
+  .survey-body { flex: 1; padding: 24px; overflow-y: auto; }
+
+  .options-grid { display: flex; flex-direction: column; gap: 10px; }
+
+  .option-card {
+    display: flex; align-items: center; gap: 14px;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    animation: slideUp 0.3s ease both;
+  }
+  .option-card:active { transform: scale(0.98); }
+  .option-card.selected {
+    border-color: var(--red);
+    background: rgba(227,6,17,0.08);
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .option-emoji {
+    width: 44px; height: 44px;
+    background: var(--surface2);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+  }
+  .option-card.selected .option-emoji { background: rgba(227,6,17,0.2); }
+
+  .option-text { flex: 1; }
+  .option-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .option-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .option-check {
+    width: 22px; height: 22px;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; transition: all 0.2s;
+  }
+  .option-card.selected .option-check {
+    background: var(--red); border-color: var(--red);
+  }
+  .option-card.selected .option-check::after {
+    content: '✓'; color: white; font-size: 12px; font-weight: 700;
+  }
+
+  /* Text input */
+  .text-input-wrap { position: relative; }
+  .text-input {
+    width: 100%;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    font-family: 'Onest', sans-serif;
+    font-size: 15px; color: var(--text);
+    resize: none; min-height: 120px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+  .text-input:focus { border-color: var(--red); }
+  .text-input::placeholder { color: var(--text-muted); }
+
+  .input-hint {
+    font-size: 12px; color: var(--text-muted);
+    margin-top: 10px; line-height: 1.5;
+  }
+  .input-hint span { color: var(--text); }
+
+  .survey-footer {
+    padding: 16px 24px 24px;
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+  }
+
+  /* ===== LOADING ===== */
+  #screen-loading {
+    align-items: center; justify-content: center;
+    padding: 40px 24px; text-align: center;
+  }
+
+  .loader-circle {
+    width: 80px; height: 80px;
+    border: 3px solid var(--border);
+    border-top-color: var(--red);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 32px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loader-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 20px; font-weight: 700; margin-bottom: 12px;
+  }
+  .loader-steps { display: flex; flex-direction: column; gap: 8px; margin-top: 32px; }
+  .loader-step {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 13px; color: var(--text-muted);
+    padding: 10px 14px;
+    background: var(--surface);
+    border-radius: 10px;
+  }
+  .loader-step.done { color: var(--green); }
+  .loader-step.active { color: var(--text); }
+  .step-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--border); flex-shrink: 0;
+  }
+  .loader-step.done .step-dot { background: var(--green); }
+  .loader-step.active .step-dot { background: var(--red); animation: blink 1s infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* ===== RESULTS ===== */
+  #screen-results { padding: 0; overflow-y: auto; }
+
+  .results-hero {
+    background: linear-gradient(135deg, #1a0000, #0a0a0a);
+    border-bottom: 1px solid var(--border);
+    padding: 28px 24px 24px;
+    position: relative; overflow: hidden;
+  }
+  .results-hero::before {
+    content: ''; position: absolute;
+    top: -50px; right: -50px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(227,6,17,0.2), transparent 70%);
+  }
+
+  .results-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(227,6,17,0.15);
+    border: 1px solid rgba(227,6,17,0.3);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 11px; color: var(--red);
+    font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+
+  .results-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 24px; font-weight: 800; line-height: 1.2;
+    margin-bottom: 8px; position: relative;
+  }
+  .results-sub { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+
+  .results-body { padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+
+  .section-title {
+    font-family: 'Unbounded', sans-serif;
+    font-size: 13px; font-weight: 600;
+    color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  /* Vacancy cards */
+  .vacancy-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .vacancy-card:nth-child(1) { border-top: 3px solid #FFD700; }
+  .vacancy-card:nth-child(2) { border-top: 3px solid #C0C0C0; }
+  .vacancy-card:nth-child(3) { border-top: 3px solid #CD7F32; }
+
+  .vacancy-head {
+    padding: 16px 16px 12px;
+    display: flex; align-items: flex-start; gap: 12px;
+  }
+  .vacancy-rank {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 14px; font-weight: 800; flex-shrink: 0;
+  }
+  .vacancy-card:nth-child(1) .vacancy-rank { color: #FFD700; background: rgba(255,215,0,0.1); }
+  .vacancy-card:nth-child(2) .vacancy-rank { color: #C0C0C0; background: rgba(192,192,192,0.1); }
+  .vacancy-card:nth-child(3) .vacancy-rank { color: #CD7F32; background: rgba(205,127,50,0.1); }
+
+  .vacancy-info { flex: 1; }
+  .vacancy-title { font-size: 15px; font-weight: 700; margin-bottom: 4px; line-height: 1.3; }
+  .vacancy-level {
+    display: inline-block;
+    background: rgba(227,6,17,0.1);
+    color: var(--red);
+    font-size: 10px; font-weight: 600;
+    padding: 2px 8px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+
+  .vacancy-duties {
+    padding: 0 16px 16px;
+    font-size: 13px; color: var(--text-muted); line-height: 1.6;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+
+  /* AI Analysis block */
+  .ai-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  .ai-block-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+  }
+  .ai-icon {
+    width: 36px; height: 36px;
+    background: var(--red);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .ai-block-title { font-size: 14px; font-weight: 700; }
+  .ai-block-sub { font-size: 11px; color: var(--text-muted); }
+
+  .ai-block-body {
+    padding: 16px;
+    font-size: 14px; color: var(--text-muted); line-height: 1.7;
+  }
+  .ai-block-body strong { color: var(--text); }
+
+  /* Roadmap */
+  .roadmap { display: flex; flex-direction: column; gap: 0; }
+  .roadmap-item {
+    display: flex; gap: 16px;
+    position: relative;
+  }
+  .roadmap-item:not(:last-child)::after {
+    content: ''; position: absolute;
+    left: 15px; top: 36px;
+    width: 2px; bottom: 0;
+    background: var(--border);
+  }
+  .roadmap-dot {
+    width: 32px; height: 32px; flex-shrink: 0;
+    background: var(--surface2);
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    z-index: 1; margin-top: 2px;
+  }
+  .roadmap-item:nth-child(1) .roadmap-dot { border-color: var(--red); color: var(--red); }
+  .roadmap-item:nth-child(2) .roadmap-dot { border-color: #FF8C00; color: #FF8C00; }
+  .roadmap-item:nth-child(3) .roadmap-dot { border-color: var(--green); color: var(--green); }
+
+  .roadmap-content { padding: 2px 0 24px; }
+  .roadmap-period {
+    font-size: 10px; font-weight: 700; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;
+  }
+  .roadmap-text { font-size: 13px; color: var(--text); line-height: 1.6; }
+
+  /* Skills chips */
+  .skills-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .skill-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 7px 12px;
+    font-size: 13px; color: var(--text);
+  }
+  .skill-chip-dot { width: 6px; height: 6px; background: var(--red); border-radius: 50%; }
+
+  /* Profile summary */
+  .profile-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .profile-item {
+    background: var(--surface2);
+    border-radius: 12px; padding: 12px;
+  }
+  .profile-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .profile-value { font-size: 13px; font-weight: 600; color: var(--text); }
+
+  /* BUTTONS */
+  .btn-primary {
+    width: 100%;
+    background: var(--red);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    padding: 16px;
+    font-family: 'Unbounded', sans-serif;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .btn-primary:active { transform: scale(0.98); background: var(--red-dark); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-secondary {
+    width: 100%;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    font-family: 'Onest', sans-serif;
+    font-size: 14px; font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 10px;
+  }
+  .btn-secondary:active { background: var(--surface); }
+
+  .results-footer { padding: 0 24px 40px; display: flex; flex-direction: column; gap: 10px; }
+</style>
+</head>
+<body>
+
+<!-- ===== WELCOME ===== -->
+<div id="screen-welcome" class="screen active">
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="welcome-top">
+    <div class="logo-wrap">
+      <span class="logo-mts">МТС</span>
+      <div class="logo-dot"></div>
+    </div>
+    <div class="welcome-title">Карьерный<br>навигатор <span>AI</span></div>
+    <div class="welcome-sub">Найди своё место в одной из крупнейших tech-компаний России</div>
+  </div>
+
+  <div class="welcome-mid">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-num">10+</div>
+        <div class="stat-label">вакансий МТС</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">AI</div>
+        <div class="stat-label">анализ профиля</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num">5</div>
+        <div class="stat-label">минут</div>
+      </div>
+    </div>
+
+    <div class="features-list">
+      <div class="feature-item">
+        <div class="feature-icon">🎯</div>
+        Диагностика навыков и интересов
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">💼</div>
+        Подбор вакансий под твой профиль
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🗺️</div>
+        Персональный карьерный план
+      </div>
+    </div>
+  </div>
+
+  <div class="welcome-bottom">
+    <button class="btn-primary" onclick="startSurvey()">Начать → </button>
+  </div>
+</div>
+
+<!-- ===== SURVEY ===== -->
+<div id="screen-survey" class="screen">
+  <div class="survey-header">
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="progress-fill" style="width:20%"></div>
+    </div>
+    <div class="step-label" id="step-label">Шаг 1 из 5</div>
+    <div class="step-question" id="step-question">Сколько тебе лет?</div>
+  </div>
+
+  <div class="survey-body" id="survey-body"></div>
+
+  <div class="survey-footer">
+    <button class="btn-primary" id="btn-next" onclick="nextStep()" disabled>Далее →</button>
+  </div>
+</div>
+
+<!-- ===== LOADING ===== -->
+<div id="screen-loading" class="screen">
+  <div class="loader-circle"></div>
+  <div class="loader-title">Анализирую профиль...</div>
+  <div style="color:var(--text-muted);font-size:13px">AI подбирает лучшие варианты для тебя</div>
+  <div class="loader-steps">
+    <div class="loader-step done" id="ls1"><div class="step-dot"></div> Профиль собран</div>
+    <div class="loader-step active" id="ls2"><div class="step-dot"></div> Подбираю вакансии МТС</div>
+    <div class="loader-step" id="ls3"><div class="step-dot"></div> AI анализирует твои навыки</div>
+    <div class="loader-step" id="ls4"><div class="step-dot"></div> Составляю карьерный план</div>
+  </div>
+</div>
+
+<!-- ===== RESULTS ===== -->
+<div id="screen-results" class="screen">
+  <div class="results-hero">
+    <div class="results-badge">✦ Анализ готов</div>
+    <div class="results-title" id="results-title">Твои результаты</div>
+    <div class="results-sub" id="results-sub">Подобрали лучшие варианты специально для тебя</div>
+  </div>
+
+  <div class="results-body" id="results-body"></div>
+  <div class="results-footer">
+    <button class="btn-primary" onclick="shareResult()">Поделиться результатом</button>
+    <button class="btn-secondary" onclick="restartSurvey()">Пройти заново</button>
+  </div>
+</div>
+
+<script>
+// ===== DATA =====
+const VACANCIES = [
+  { title:"Стажёр — продажи и развитие", level:"стажёр", edu:["школа","спо","вуз"], tags:["продажи","общение","аналитика"], duties:"Звонки и встречи с клиентами, презентации ИТ-решений, ведение базы контактов", match_goal:["стажировка","заработок"] },
+  { title:"Стажёр HR", level:"стажёр", edu:["школа","спо","вуз"], tags:["общение","организация","hr"], duties:"Анализ резюме, поиск кандидатов, телефонные интервью, ведение базы", match_goal:["стажировка"] },
+  { title:"Стажёр-инженер (кабельные сооружения)", level:"стажёр", edu:["спо","вуз"], tags:["техника","инженерия","аналитика"], duties:"Работа с базами данных, анализ технической документации, учёт оборудования", match_goal:["стажировка","it"] },
+  { title:"Продавец (розничная сеть МТС)", level:"специалист", edu:["школа","спо","вуз"], tags:["продажи","общение","digital"], duties:"Продажа смартфонов, гаджетов, тарифов; консультирование клиентов по связи", match_goal:["заработок","стажировка"] },
+  { title:"Специалист по корпоративным клиентам", level:"специалист", edu:["спо","вуз"], tags:["продажи","общение","поддержка"], duties:"Ответы на звонки, решение сервисных и технических вопросов, помощь в выборе тарифов", match_goal:["заработок","специалист"] },
+  { title:"Аналитик по внедрению AI", level:"специалист", edu:["вуз"], tags:["it","аналитика","ai","python","данные"], duties:"Сбор идей по применению ИИ, оценка гипотез, трекинг AI-кейсов, автоматизация процессов", match_goal:["it","специалист"] },
+  { title:"Направление сопровождения рабочих мест (IT)", level:"специалист", edu:["спо","вуз"], tags:["it","windows","сети","техника"], duties:"Автоматизация процессов, поддержка пользователей, сопровождение ПО и серверов", match_goal:["it","специалист"] },
+  { title:"Маркетинг", level:"специалист", edu:["вуз"], tags:["маркетинг","аналитика","реклама"], duties:"Анализ рыночных показателей, изучение конкурентов, медиа-поддержка запуска продуктов", match_goal:["специалист"] },
+  { title:"Юрист", level:"специалист", edu:["вуз"], tags:["право","аналитика","юриспруденция"], duties:"Правовое сопровождение HR-процессов, мониторинг законодательства, подготовка документов", match_goal:["специалист"] },
+  { title:"Специалист по закупкам", level:"специалист", edu:["вуз"], tags:["аналитика","excel","экономика"], duties:"Подписание заказов, контроль сроков исполнения обязательств, обработка документов", match_goal:["специалист"] },
+];
+
+const STEPS = [
+  {
+    id:"age", label:"Шаг 1 из 5", question:"Сколько тебе лет?",
+    type:"options",
+    options:[
+      {emoji:"🏫", title:"14–16 лет", sub:"Школьник", value:"14"},
+      {emoji:"📚", title:"17–18 лет", sub:"Старшеклассник / абитуриент", value:"17"},
+      {emoji:"🎓", title:"19–21 год", sub:"Студент", value:"19"},
+      {emoji:"🚀", title:"22+ года", sub:"Выпускник", value:"22"},
+    ]
+  },
+  {
+    id:"education", label:"Шаг 2 из 5", question:"Уровень образования?",
+    type:"options",
+    options:[
+      {emoji:"🏫", title:"Школа (9–11 класс)", sub:"Ещё учусь", value:"школа"},
+      {emoji:"🎓", title:"Колледж / СПО", sub:"Среднее профессиональное", value:"спо"},
+      {emoji:"🏛️", title:"Университет / вуз", sub:"Высшее (студент или выпускник)", value:"вуз"},
+    ]
+  },
+  {
+    id:"interests", label:"Шаг 3 из 5", question:"Что тебе интереснее всего?",
+    type:"options",
+    options:[
+      {emoji:"💻", title:"IT и технологии", sub:"Разработка, DevOps, инфраструктура", value:"it"},
+      {emoji:"📊", title:"Аналитика и данные", sub:"Data, BI, исследования", value:"аналитика"},
+      {emoji:"🤝", title:"Продажи и общение", sub:"Работа с клиентами, переговоры", value:"продажи"},
+      {emoji:"📣", title:"Маркетинг и реклама", sub:"SMM, digital, бренд", value:"маркетинг"},
+      {emoji:"⚖️", title:"Юриспруденция", sub:"Право, документы, договоры", value:"право"},
+      {emoji:"🔧", title:"Инженерия и техника", sub:"Оборудование, сети, эксплуатация", value:"техника"},
+      {emoji:"👥", title:"HR и управление людьми", sub:"Подбор, развитие, обучение", value:"hr"},
+    ]
+  },
+  {
+    id:"skills", label:"Шаг 4 из 5", question:"Какие навыки у тебя есть?",
+    type:"text",
+    placeholder:"Например: Excel, Python, умею общаться с людьми, знаю английский...\n\nИли просто: ничего особенного, я только начинаю 😊",
+    hint: "Пиши всё что умеешь — программы, языки, soft skills. Даже базовые навыки важны!"
+  },
+  {
+    id:"goal", label:"Шаг 5 из 5", question:"Какая твоя главная цель?",
+    type:"options",
+    options:[
+      {emoji:"💼", title:"Найти стажировку", sub:"Первый опыт работы в крупной компании", value:"стажировка"},
+      {emoji:"💻", title:"Карьера в IT", sub:"Хочу стать IT-специалистом", value:"it"},
+      {emoji:"🚀", title:"Стать профессионалом", sub:"Развиваться в своей сфере", value:"специалист"},
+      {emoji:"💰", title:"Быстро зарабатывать", sub:"Начать получать деньги уже сейчас", value:"заработок"},
+    ]
+  },
+];
+
+// ===== STATE =====
+let currentStep = 0;
+let answers = {};
+let selectedValue = null;
+
+// ===== NAV =====
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + id).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+function startSurvey() {
+  currentStep = 0;
+  answers = {};
+  renderStep();
+  showScreen('survey');
+}
+
+function restartSurvey() {
+  startSurvey();
+}
+
+// ===== SURVEY =====
+function renderStep() {
+  const step = STEPS[currentStep];
+  selectedValue = null;
+
+  document.getElementById('progress-fill').style.width = ((currentStep+1)/STEPS.length * 100) + '%';
+  document.getElementById('step-label').textContent = step.label;
+  document.getElementById('step-question').textContent = step.question;
+
+  const body = document.getElementById('survey-body');
+  const btn = document.getElementById('btn-next');
+  btn.disabled = true;
+
+  if (step.type === 'options') {
+    body.innerHTML = `<div class="options-grid">${
+      step.options.map((o,i) => `
+        <div class="option-card" style="animation-delay:${i*0.05}s" onclick="selectOption(this,'${o.value}')">
+          <div class="option-emoji">${o.emoji}</div>
+          <div class="option-text">
+            <div class="option-title">${o.title}</div>
+            <div class="option-sub">${o.sub}</div>
+          </div>
+          <div class="option-check"></div>
+        </div>`
+      ).join('')
+    }</div>`;
+  } else {
+    body.innerHTML = `
+      <div class="text-input-wrap">
+        <textarea class="text-input" id="text-answer" placeholder="${step.placeholder}" oninput="onTextInput(this)"></textarea>
+        <div class="input-hint">💡 ${step.hint}</div>
+      </div>`;
+    // pre-fill if going back
+    if (answers[step.id]) {
+      document.getElementById('text-answer').value = answers[step.id];
+      btn.disabled = false;
+    }
+  }
+}
+
+function selectOption(el, value) {
+  document.querySelectorAll('.option-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedValue = value;
+  document.getElementById('btn-next').disabled = false;
+  if (window.Telegram?.WebApp) Telegram.WebApp.HapticFeedback?.impactOccurred('light');
+}
+
+function onTextInput(el) {
+  document.getElementById('btn-next').disabled = el.value.trim().length < 2;
+}
+
+function nextStep() {
+  const step = STEPS[currentStep];
+  if (step.type === 'options') {
+    answers[step.id] = selectedValue;
+  } else {
+    answers[step.id] = document.getElementById('text-answer').value.trim();
+  }
+
+  if (currentStep < STEPS.length - 1) {
+    currentStep++;
+    renderStep();
+  } else {
+    analyzeProfile();
+  }
+}
+
+// ===== ANALYSIS =====
+function matchVacancies() {
+  const edu = answers.education;
+  const interests = answers.interests;
+  const goal = answers.goal;
+  const age = parseInt(answers.age);
+
+  const scored = VACANCIES.map(v => {
+    let score = 0;
+    if (v.edu.includes(edu)) score += 3;
+    if (v.tags.includes(interests)) score += 4;
+    if (v.match_goal?.includes(goal)) score += 2;
+    if (age <= 18 && v.level === 'стажёр') score += 2;
+    if (age >= 19 && v.level === 'специалист') score += 1;
+    return {...v, score};
+  });
+
+  return scored.sort((a,b) => b.score - a.score).slice(0,3);
+}
+
+async function analyzeProfile() {
+  showScreen('loading');
+
+  const matched = matchVacancies();
+
+  // Animate loader steps
+  await delay(800);
+  setLoaderStep(2, 'done'); setLoaderStep(3, 'active');
+  await delay(900);
+  setLoaderStep(3, 'done'); setLoaderStep(4, 'active');
+
+  let aiText = null;
+  try {
+    aiText = await callDeepSeek(matched);
+  } catch(e) {
+    aiText = null;
+  }
+
+  await delay(600);
+  setLoaderStep(4, 'done');
+  await delay(400);
+
+  renderResults(matched, aiText);
+  showScreen('results');
+}
+
+function setLoaderStep(n, state) {
+  const el = document.getElementById('ls' + n);
+  el.className = 'loader-step ' + state;
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function callDeepSeek(matched) {
+  const vacList = matched.map(v => v.title).join(', ');
+  const prompt = `Ты карьерный консультант МТС. Кратко проанализируй профиль и дай план (не более 200 слов, на "ты", с эмодзи).
+
+Профиль:
+- Возраст: ${answers.age} лет
+- Образование: ${answers.education}
+- Интересы: ${answers.interests}
+- Навыки: ${answers.skills}
+- Цель: ${answers.goal}
+
+Подобранные вакансии МТС: ${vacList}
+
+Напиши ответ в формате:
+**Твой профиль:** (1-2 предложения о сильных сторонах)
+**Первые шаги:** (3 конкретных шага на ближайшие 3 месяца)
+**Прокачай навыки:** (3 навыка для роста, каждый с коротким объяснением)`;
+
+  const resp = await fetch('https://api.deepseek.com/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer sk-2d791f45f9804e7fb29d6f8222381639'
+    },
+    body: JSON.stringify({
+      model: 'deepseek-chat',
+      messages: [{role:'user', content: prompt}],
+      max_tokens: 600,
+      temperature: 0.7
+    })
+  });
+  const data = await resp.json();
+  return data.choices[0].message.content;
+}
+
+// ===== RENDER RESULTS =====
+function renderResults(matched, aiText) {
+  const interestNames = {
+    it:'IT и технологии', аналитика:'Аналитика и данные',
+    продажи:'Продажи и общение', маркетинг:'Маркетинг',
+    право:'Юриспруденция', техника:'Инженерия', hr:'HR'
+  };
+
+  document.getElementById('results-title').textContent = 'Готово! Вот твой план 🎯';
+  document.getElementById('results-sub').textContent = `Подобрали ${matched.length} вакансии МТС специально под тебя`;
+
+  const body = document.getElementById('results-body');
+
+  // Profile summary
+  const ageLabels = {'14':'14–16 лет','17':'17–18 лет','19':'19–21 год','22':'22+ года'};
+  const eduLabels = {школа:'Школьник',спо:'Студент СПО',вуз:'Студент/выпускник вуза'};
+  const goalLabels = {стажировка:'Найти стажировку',it:'Карьера в IT',специалист:'Стать профи',заработок:'Начать зарабатывать'};
+
+  let html = `
+    <div>
+      <div class="section-title">Твой профиль</div>
+      <div class="profile-grid">
+        <div class="profile-item"><div class="profile-label">Возраст</div><div class="profile-value">${ageLabels[answers.age] || answers.age+' лет'}</div></div>
+        <div class="profile-item"><div class="profile-label">Образование</div><div class="profile-value">${eduLabels[answers.education] || answers.education}</div></div>
+        <div class="profile-item"><div class="profile-label">Интересы</div><div class="profile-value">${interestNames[answers.interests] || answers.interests}</div></div>
+        <div class="profile-item"><div class="profile-label">Цель</div><div class="profile-value">${goalLabels[answers.goal] || answers.goal}</div></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Топ вакансии МТС</div>
+      ${matched.map((v,i) => `
+        <div class="vacancy-card" style="margin-bottom:${i<2?'12px':'0'}">
+          <div class="vacancy-head">
+            <div class="vacancy-rank">${['🥇','🥈','🥉'][i]}</div>
+            <div class="vacancy-info">
+              <div class="vacancy-title">${v.title}</div>
+              <span class="vacancy-level">${v.level}</span>
+            </div>
+          </div>
+          <div class="vacancy-duties">${v.duties}</div>
+        </div>`
+      ).join('')}
+    </div>`;
+
+  // AI analysis
+  if (aiText) {
+    const formatted = aiText
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+    html += `
+      <div>
+        <div class="section-title">AI-анализ от МТС</div>
+        <div class="ai-block">
+          <div class="ai-block-head">
+            <div class="ai-icon">🤖</div>
+            <div>
+              <div class="ai-block-title">Персональные рекомендации</div>
+              <div class="ai-block-sub">На основе твоего профиля</div>
+            </div>
+          </div>
+          <div class="ai-block-body">${formatted}</div>
+        </div>
+      </div>`;
+  } else {
+    // Fallback roadmap
+    const roadmaps = {
+      стажировка: [
+        {period:"Месяц 1", text:"Подай заявку на стажировку в МТС через hh.ru. Обнови резюме, даже если опыта нет — укажи учёбу и интересы."},
+        {period:"Месяцы 2–3", text:"Пройди онлайн-курс по выбранному направлению (Stepik, Coursera). Добавь сертификат в резюме."},
+        {period:"Месяц 4+", text:"Начни стажировку, собирай опыт и нетворкинг. МТС часто берёт стажёров в штат."},
+      ],
+      it: [
+        {period:"Месяц 1", text:"Начни с Python или SQL — базовые курсы бесплатно на Stepik. 30 минут в день достаточно."},
+        {period:"Месяцы 2–4", text:"Сделай первый пет-проект. Выложи на GitHub. Подай заявку на IT-стажировку МТС."},
+        {period:"Месяц 6+", text:"Участвуй в хакатонах МТС, расширяй портфолио, ищи junior-позицию."},
+      ],
+      специалист: [
+        {period:"Месяц 1", text:"Определи 1-2 ключевых навыка для твоей сферы. Найди лучший курс или книгу."},
+        {period:"Месяцы 2–4", text:"Применяй знания на практике. Ищи стажировку или проект по своей теме."},
+        {period:"Месяц 6+", text:"Проходи собеседования, собирай обратную связь. МТС ценит развивающихся специалистов."},
+      ],
+      заработок: [
+        {period:"Неделя 1–2", text:"Подай резюме на позицию Продавец МТС или Специалист по корпоративным клиентам — опыт не нужен."},
+        {period:"Месяц 1", text:"Пройди обучение, начни работать. МТС обеспечивает хорошую базовую ставку + бонусы."},
+        {period:"Месяцы 2–6", text:"Выполняй план продаж, изучай продукты МТС. Хорошие продавцы растут быстро."},
+      ],
+    };
+    const steps = roadmaps[answers.goal] || roadmaps['стажировка'];
+    html += `
+      <div>
+        <div class="section-title">Твой карьерный план</div>
+        <div class="ai-block">
+          <div class="ai-block-body">
+            <div class="roadmap">
+              ${steps.map((s,i) => `
+                <div class="roadmap-item">
+                  <div class="roadmap-dot">${i+1}</div>
+                  <div class="roadmap-content">
+                    <div class="roadmap-period">${s.period}</div>
+                    <div class="roadmap-text">${s.text}</div>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  body.innerHTML = html;
+}
+
+// ===== SHARE =====
+function shareResult() {
+  const text = `Прошёл карьерный тест МТС! 🎯\nМоё направление: ${answers.interests}\nЦель: ${answers.goal}\n\nПройди и ты → t.me/nav1gatorcareer_bot`;
+  if (window.Telegram?.WebApp) {
+    Telegram.WebApp.switchInlineQuery(text);
+  } else if (navigator.share) {
+    navigator.share({ text });
+  } else {
+    navigator.clipboard?.writeText(text);
+    alert('Скопировано в буфер обмена!');
+  }
+}
+
+// ===== TELEGRAM INIT =====
+if (window.Telegram?.WebApp) {
+  Telegram.WebApp.ready();
+  Telegram.WebApp.expand();
+}
+</script>
+</body>
+</html>
